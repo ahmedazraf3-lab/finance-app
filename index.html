@@ -18,15 +18,23 @@
   .verde{color:#4ade80;} .rojo{color:#f87171;}
   .seccion{background:#1e293b;border-radius:14px;padding:14px;margin-bottom:16px;}
   select,input{width:100%;padding:8px;margin-bottom:8px;border-radius:8px;border:none;box-sizing:border-box;}
-  .fila{display:flex;gap:6px;}
-  .fila > *{flex:1;}
   button{background:#3b82f6;color:#fff;border:none;padding:10px;border-radius:8px;width:100%;font-size:0.95em;cursor:pointer;}
   .tabs{display:flex;gap:6px;margin-bottom:10px;}
   .tab{flex:1;padding:8px;border-radius:8px;text-align:center;background:#334155;cursor:pointer;font-size:0.85em;}
   .tab.activo{background:#3b82f6;}
-  .catbtn{display:flex;align-items:center;gap:6px;background:#334155;border:none;color:#fff;padding:6px 10px;border-radius:20px;font-size:0.8em;margin:3px;}
-  .movimiento{display:flex;justify-content:space-between;padding:6px 0;border-top:1px solid #334155;font-size:0.9em;}
+  .catbtn{display:inline-flex;align-items:center;gap:6px;background:#334155;border:none;color:#fff;padding:6px 10px;border-radius:20px;font-size:0.8em;margin:3px;cursor:pointer;}
+  .movimiento{display:flex;justify-content:space-between;align-items:center;padding:6px 0;border-top:1px solid #334155;font-size:0.9em;gap:6px;}
+  .movimiento .info{flex:1;}
+  .movimiento .acciones{display:flex;gap:8px;}
+  .movimiento .acciones span{cursor:pointer;font-size:1em;}
   canvas{max-width:100%;}
+  .calGrid{display:grid;grid-template-columns:repeat(7,1fr);gap:4px;text-align:center;}
+  .calDia{background:#334155;border-radius:8px;padding:6px 2px;font-size:0.75em;position:relative;cursor:pointer;}
+  .calDia.vacio{background:transparent;cursor:default;}
+  .calDots{display:flex;justify-content:center;gap:2px;margin-top:2px;}
+  .calDots span{width:5px;height:5px;border-radius:50%;display:inline-block;}
+  .calNav{display:flex;justify-content:space-between;align-items:center;margin-bottom:8px;}
+  .calNav button{width:auto;padding:4px 10px;}
 </style>
 </head>
 <body>
@@ -46,7 +54,7 @@
   </div>
   <input type="text" id="concepto" placeholder="Concepto (ej. Supermercado)">
   <input type="number" id="importe" placeholder="Importe en €">
-  <select id="categoria">
+  <select id="categoriaGasto">
     <option value="Vivienda">🏠 Vivienda</option>
     <option value="Comida">🍔 Comida</option>
     <option value="Transporte">🚗 Transporte</option>
@@ -55,14 +63,27 @@
     <option value="Suscripciones">📱 Suscripciones</option>
     <option value="Otros">📦 Otros</option>
   </select>
+  <select id="categoriaIngreso" style="display:none;">
+    <option value="Nómina">💼 Nómina</option>
+    <option value="Paro/SEPE">🏛️ Paro / SEPE</option>
+    <option value="Extra">➕ Extra</option>
+    <option value="Otros ingresos">📦 Otros ingresos</option>
+  </select>
   <button onclick="addMovimiento()">Guardar</button>
 </div>
 
 <div class="seccion">
   <h3>🍩 Gastos por categoría (este mes)</h3>
-  <div id="legendCategorias"></div>
+  <div id="legendGastos"></div>
   <canvas id="donutGastos"></canvas>
-  <div id="detalleCategoria"></div>
+  <div id="detalleGastos"></div>
+</div>
+
+<div class="seccion">
+  <h3>🪙 Ingresos por categoría (este mes)</h3>
+  <div id="legendIngresos"></div>
+  <canvas id="donutIngresos"></canvas>
+  <div id="detalleIngresos"></div>
 </div>
 
 <div class="seccion">
@@ -70,31 +91,80 @@
   <canvas id="lineAhorro"></canvas>
 </div>
 
+<div class="seccion">
+  <h3>📅 Calendario de movimientos</h3>
+  <div class="calNav">
+    <button onclick="cambiarMesCal(-1)">◀</button>
+    <span id="calTitulo" style="font-size:0.9em;"></span>
+    <button onclick="cambiarMesCal(1)">▶</button>
+  </div>
+  <div class="calGrid" id="calGrid"></div>
+  <div id="detalleDia" style="margin-top:10px;"></div>
+</div>
+
 <script src="https://cdnjs.cloudflare.com/ajax/libs/Chart.js/4.4.1/chart.umd.js"></script>
 <script>
 let tipoActual = 'gasto';
 let data = JSON.parse(localStorage.getItem('financeData')) || [];
-const emojis = {Vivienda:'🏠',Comida:'🍔',Transporte:'🚗',Ocio:'🎉',Salud:'💊',Suscripciones:'📱',Otros:'📦'};
-const coloresCat = {Vivienda:'#2a78d6',Comida:'#eb6834',Transporte:'#eda100',Ocio:'#1baf7a',Salud:'#e87ba4',Suscripciones:'#6250d6',Otros:'#94a3b8'};
-let donutChart, lineChart;
+let calFecha = new Date();
+
+const emojisGasto = {Vivienda:'🏠',Comida:'🍔',Transporte:'🚗',Ocio:'🎉',Salud:'💊',Suscripciones:'📱',Otros:'📦'};
+const coloresGasto = {Vivienda:'#2a78d6',Comida:'#eb6834',Transporte:'#eda100',Ocio:'#1baf7a',Salud:'#e87ba4',Suscripciones:'#6250d6',Otros:'#94a3b8'};
+const emojisIngreso = {'Nómina':'💼','Paro/SEPE':'🏛️','Extra':'➕','Otros ingresos':'📦'};
+const coloresIngreso = {'Nómina':'#1baf7a','Paro/SEPE':'#2a78d6','Extra':'#eda100','Otros ingresos':'#94a3b8'};
+
+let donutGastosChart, donutIngresosChart, lineChart;
 
 function cambiarTipo(t){
   tipoActual = t;
   document.getElementById('tabGasto').classList.toggle('activo', t==='gasto');
   document.getElementById('tabIngreso').classList.toggle('activo', t==='ingreso');
-  document.getElementById('categoria').style.display = t==='gasto' ? 'block' : 'none';
+  document.getElementById('categoriaGasto').style.display = t==='gasto' ? 'block' : 'none';
+  document.getElementById('categoriaIngreso').style.display = t==='ingreso' ? 'block' : 'none';
 }
 
 function addMovimiento(){
   const concepto = document.getElementById('concepto').value;
   const importe = parseFloat(document.getElementById('importe').value);
-  const categoria = document.getElementById('categoria').value;
+  const categoria = tipoActual==='gasto' ? document.getElementById('categoriaGasto').value : document.getElementById('categoriaIngreso').value;
   if(!concepto || !importe){ alert('Rellena concepto e importe'); return; }
-  data.push({tipo:tipoActual, concepto, importe, categoria: tipoActual==='gasto'?categoria:null, fecha: new Date().toISOString()});
-  localStorage.setItem('financeData', JSON.stringify(data));
+  data.push({id: Date.now()+Math.random(), tipo:tipoActual, concepto, importe, categoria, fecha: new Date().toISOString()});
+  guardar();
   document.getElementById('concepto').value='';
   document.getElementById('importe').value='';
+}
+
+function guardar(){
+  localStorage.setItem('financeData', JSON.stringify(data));
   render();
+}
+
+function eliminarMovimiento(id){
+  if(!confirm('¿Eliminar este movimiento?')) return;
+  data = data.filter(m=>m.id!==id);
+  guardar();
+}
+
+function editarMovimiento(id){
+  const m = data.find(x=>x.id===id);
+  if(!m) return;
+  const nuevoConcepto = prompt('Concepto:', m.concepto);
+  if(nuevoConcepto===null) return;
+  const nuevoImporte = parseFloat(prompt('Importe (€):', m.importe));
+  if(isNaN(nuevoImporte)) return;
+  m.concepto = nuevoConcepto;
+  m.importe = nuevoImporte;
+  guardar();
+}
+
+function filaMovimiento(m, emojiMap){
+  return `<div class="movimiento">
+    <span class="info">${emojiMap[m.categoria]||'📦'} ${m.concepto} — ${m.importe.toFixed(0)}€</span>
+    <span class="acciones">
+      <span onclick="editarMovimiento(${m.id})">✏️</span>
+      <span onclick="eliminarMovimiento(${m.id})">🗑️</span>
+    </span>
+  </div>`;
 }
 
 function mesActual(fecha){
@@ -113,28 +183,8 @@ function render(){
   ahorroEl.textContent = (ingresos-gastos).toFixed(0)+'€';
   ahorroEl.className = 'value ' + (ingresos-gastos >= 0 ? 'verde':'rojo');
 
-  const porCategoria = {};
-  delMes.filter(m=>m.tipo==='gasto').forEach(m=>{
-    porCategoria[m.categoria] = (porCategoria[m.categoria]||0) + m.importe;
-  });
-  const cats = Object.keys(porCategoria);
-  const legend = document.getElementById('legendCategorias');
-  legend.innerHTML = '';
-  cats.forEach(c=>{
-    const btn = document.createElement('button');
-    btn.className='catbtn';
-    btn.innerHTML = emojis[c]+' '+c+' · '+porCategoria[c].toFixed(0)+'€';
-    btn.onclick = ()=>mostrarDetalle(c, delMes);
-    legend.appendChild(btn);
-  });
-
-  if(donutChart) donutChart.destroy();
-  donutChart = new Chart(document.getElementById('donutGastos'), {
-    type:'doughnut',
-    data:{ labels:cats, datasets:[{ data:cats.map(c=>porCategoria[c]), backgroundColor:cats.map(c=>coloresCat[c]), borderColor:'#1e293b', borderWidth:2 }]},
-    options:{ plugins:{legend:{display:false}},
-      onClick:(evt,els)=>{ if(els.length){ mostrarDetalle(cats[els[0].index], delMes); } } }
-  });
+  renderDonut('gasto', delMes, coloresGasto, emojisGasto, 'legendGastos', 'donutGastos', 'detalleGastos');
+  renderDonut('ingreso', delMes, coloresIngreso, emojisIngreso, 'legendIngresos', 'donutIngresos', 'detalleIngresos');
 
   const historico = {};
   data.forEach(m=>{
@@ -150,14 +200,77 @@ function render(){
     data:{ labels: meses.map(m=>m.split('-')[1]), datasets:[{ data: ahorroHist, borderColor:'#4ade80', backgroundColor:'rgba(74,222,128,0.15)', fill:true, tension:0.3, pointRadius:4 }]},
     options:{ plugins:{legend:{display:false}} }
   });
+
+  renderCalendario();
 }
 
-function mostrarDetalle(cat, delMes){
-  const lista = delMes.filter(m=>m.tipo==='gasto' && m.categoria===cat);
-  const el = document.getElementById('detalleCategoria');
-  el.innerHTML = '<h3>'+emojis[cat]+' '+cat+'</h3>' + lista.map(m=>
-    `<div class="movimiento"><span>${m.concepto}</span><span>${m.importe.toFixed(0)}€</span></div>`
-  ).join('');
+function renderDonut(tipo, delMes, colores, emojiMap, legendId, canvasId, detalleId){
+  const porCategoria = {};
+  delMes.filter(m=>m.tipo===tipo).forEach(m=>{
+    porCategoria[m.categoria] = (porCategoria[m.categoria]||0) + m.importe;
+  });
+  const cats = Object.keys(porCategoria);
+  const legend = document.getElementById(legendId);
+  legend.innerHTML = '';
+  cats.forEach(c=>{
+    const btn = document.createElement('button');
+    btn.className='catbtn';
+    btn.innerHTML = emojiMap[c]+' '+c+' · '+porCategoria[c].toFixed(0)+'€';
+    btn.onclick = ()=>mostrarDetalleCategoria(tipo, c, delMes, emojiMap, detalleId);
+    legend.appendChild(btn);
+  });
+  let chartVar = tipo==='gasto' ? donutGastosChart : donutIngresosChart;
+  if(chartVar) chartVar.destroy();
+  const nuevoChart = new Chart(document.getElementById(canvasId), {
+    type:'doughnut',
+    data:{ labels:cats, datasets:[{ data:cats.map(c=>porCategoria[c]), backgroundColor:cats.map(c=>colores[c]), borderColor:'#1e293b', borderWidth:2 }]},
+    options:{ plugins:{legend:{display:false}},
+      onClick:(evt,els)=>{ if(els.length){ mostrarDetalleCategoria(tipo, cats[els[0].index], delMes, emojiMap, detalleId); } } }
+  });
+  if(tipo==='gasto') donutGastosChart = nuevoChart; else donutIngresosChart = nuevoChart;
+}
+
+function mostrarDetalleCategoria(tipo, cat, delMes, emojiMap, detalleId){
+  const lista = delMes.filter(m=>m.tipo===tipo && m.categoria===cat);
+  const el = document.getElementById(detalleId);
+  el.innerHTML = '<h3 style="margin-top:12px;">'+emojiMap[cat]+' '+cat+'</h3>' + lista.map(m=>filaMovimiento(m, emojiMap)).join('');
+}
+
+function cambiarMesCal(delta){
+  calFecha.setMonth(calFecha.getMonth()+delta);
+  renderCalendario();
+}
+
+function renderCalendario(){
+  const anio = calFecha.getFullYear();
+  const mes = calFecha.getMonth();
+  document.getElementById('calTitulo').textContent = calFecha.toLocaleDateString('es-ES',{month:'long', year:'numeric'});
+  const primerDia = new Date(anio, mes, 1).getDay();
+  const diasEnMes = new Date(anio, mes+1, 0).getDate();
+  const grid = document.getElementById('calGrid');
+  grid.innerHTML = '';
+  const offset = (primerDia+6)%7;
+  for(let i=0;i<offset;i++){ const vacio=document.createElement('div'); vacio.className='calDia vacio'; grid.appendChild(vacio); }
+  for(let dia=1; dia<=diasEnMes; dia++){
+    const movsDia = data.filter(m=>{
+      const d = new Date(m.fecha);
+      return d.getFullYear()===anio && d.getMonth()===mes && d.getDate()===dia;
+    });
+    const tieneIngreso = movsDia.some(m=>m.tipo==='ingreso');
+    const tieneGasto = movsDia.some(m=>m.tipo==='gasto');
+    const celda = document.createElement('div');
+    celda.className='calDia';
+    celda.innerHTML = dia + '<div class="calDots">' + (tieneIngreso?'<span style="background:#4ade80"></span>':'') + (tieneGasto?'<span style="background:#f87171"></span>':'') + '</div>';
+    celda.onclick = ()=>mostrarDetalleDia(movsDia, dia);
+    grid.appendChild(celda);
+  }
+}
+
+function mostrarDetalleDia(movs, dia){
+  const el = document.getElementById('detalleDia');
+  if(movs.length===0){ el.innerHTML = '<p style="color:#94a3b8;font-size:0.85em;">Sin movimientos el día '+dia+'.</p>'; return; }
+  const emojiMap = {...emojisGasto, ...emojisIngreso};
+  el.innerHTML = '<h3>Día '+dia+'</h3>' + movs.map(m=>filaMovimiento(m, emojiMap)).join('');
 }
 
 cambiarTipo('gasto');
