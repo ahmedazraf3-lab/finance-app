@@ -8,14 +8,20 @@
 <link rel="manifest" href="manifest.json">
 <link rel="apple-touch-icon" href="icon-192.png">
 <style>
-  body{margin:0;font-family:sans-serif;background:#0f172a;color:#fff;padding:16px;padding-bottom:40px;}
-  h1{font-size:1.4em;margin-bottom:16px;}
+  body{margin:0;font-family:sans-serif;background:#0f172a;color:#fff;overflow-x:hidden;}
+  h1{font-size:1.3em;margin:0;padding:16px 16px 8px;}
   h3{margin:0 0 10px;font-size:1em;}
-  .cards{display:grid;grid-template-columns:1fr 1fr 1fr;gap:8px;margin-bottom:20px;}
+  .pager{display:flex;overflow-x:auto;scroll-snap-type:x mandatory;-webkit-overflow-scrolling:touch;}
+  .page{flex:0 0 100%;scroll-snap-align:start;box-sizing:border-box;padding:0 16px 30px;}
+  .dots{display:flex;justify-content:center;gap:8px;padding:10px 0;}
+  .dot{width:8px;height:8px;border-radius:50%;background:#334155;cursor:pointer;}
+  .dot.activo{background:#3b82f6;}
+  .cards{display:grid;grid-template-columns:1fr 1fr 1fr;gap:8px;margin-bottom:10px;}
   .card{background:#1e293b;border-radius:12px;padding:10px;text-align:center;}
-  .card .label{font-size:0.75em;color:#94a3b8;}
-  .card .value{font-size:1.1em;font-weight:bold;margin-top:4px;}
+  .card .label{font-size:0.72em;color:#94a3b8;}
+  .card .value{font-size:1.05em;font-weight:bold;margin-top:4px;}
   .verde{color:#4ade80;} .rojo{color:#f87171;}
+  .acumulado{font-size:0.85em;color:#94a3b8;text-align:center;margin-bottom:16px;}
   .seccion{background:#1e293b;border-radius:14px;padding:14px;margin-bottom:16px;}
   select,input{width:100%;padding:8px;margin-bottom:8px;border-radius:8px;border:none;box-sizing:border-box;}
   button{background:#3b82f6;color:#fff;border:none;padding:10px;border-radius:8px;width:100%;font-size:0.95em;cursor:pointer;}
@@ -28,6 +34,11 @@
   .movimiento .acciones{display:flex;gap:8px;}
   .movimiento .acciones span{cursor:pointer;font-size:1em;}
   canvas{max-width:100%;}
+  .partida{margin-bottom:16px;}
+  .partidaTop{display:flex;justify-content:space-between;font-size:0.9em;margin-bottom:4px;}
+  .barra{height:8px;background:#334155;border-radius:4px;overflow:hidden;}
+  .barraInterior{height:100%;}
+  .inputPresu{width:70px;padding:5px;border-radius:6px;border:none;font-size:0.8em;}
   .calGrid{display:grid;grid-template-columns:repeat(7,1fr);gap:4px;text-align:center;}
   .calDia{background:#334155;border-radius:8px;padding:6px 2px;font-size:0.75em;position:relative;cursor:pointer;}
   .calDia.vacio{background:transparent;cursor:default;}
@@ -40,74 +51,103 @@
 <body>
 <h1>💰 Mis Finanzas</h1>
 
-<div class="cards">
-  <div class="card"><div class="label">📥 Ingresos</div><div class="value verde" id="totalIngresos">0€</div></div>
-  <div class="card"><div class="label">📤 Gastos</div><div class="value rojo" id="totalGastos">0€</div></div>
-  <div class="card"><div class="label">🐷 Ahorro</div><div class="value" id="totalAhorro">0€</div></div>
-</div>
+<div class="pager" id="pager">
 
-<div class="seccion">
-  <h3>➕ Añadir movimiento</h3>
-  <div class="tabs">
-    <div class="tab activo" id="tabGasto" onclick="cambiarTipo('gasto')">📤 Gasto</div>
-    <div class="tab" id="tabIngreso" onclick="cambiarTipo('ingreso')">📥 Ingreso</div>
+  <!-- PÁGINA 1: PANEL PRINCIPAL -->
+  <div class="page">
+    <div class="cards">
+      <div class="card"><div class="label">📥 Ingresos</div><div class="value verde" id="totalIngresos">0€</div></div>
+      <div class="card"><div class="label">📤 Gastos</div><div class="value rojo" id="totalGastos">0€</div></div>
+      <div class="card"><div class="label">🐷 Ahorro mes</div><div class="value" id="totalAhorro">0€</div></div>
+    </div>
+    <div class="acumulado">💎 Ahorro acumulado: <b id="ahorroAcumuladoTxt">0€</b></div>
+
+    <div class="seccion">
+      <h3>➕ Añadir movimiento</h3>
+      <div class="tabs">
+        <div class="tab activo" id="tabGasto" onclick="cambiarTipo('gasto')">📤 Gasto</div>
+        <div class="tab" id="tabIngreso" onclick="cambiarTipo('ingreso')">📥 Ingreso</div>
+      </div>
+      <input type="text" id="concepto" placeholder="Concepto (ej. Supermercado)">
+      <input type="number" id="importe" placeholder="Importe en €">
+      <select id="categoriaGasto">
+        <option value="Vivienda">🏠 Vivienda</option>
+        <option value="Comida">🍔 Comida</option>
+        <option value="Transporte">🚗 Transporte</option>
+        <option value="Ocio">🎉 Ocio</option>
+        <option value="Salud">💊 Salud</option>
+        <option value="Suscripciones">📱 Suscripciones</option>
+        <option value="Otros">📦 Otros</option>
+      </select>
+      <select id="categoriaIngreso" style="display:none;">
+        <option value="Nómina">💼 Nómina</option>
+        <option value="Paro/SEPE">🏛️ Paro / SEPE</option>
+        <option value="Extra">➕ Extra</option>
+        <option value="Otros ingresos">📦 Otros ingresos</option>
+      </select>
+      <button onclick="addMovimiento()">Guardar</button>
+    </div>
+
+    <div class="seccion">
+      <h3>🍩 Gastos por categoría (este mes)</h3>
+      <div id="legendGastos"></div>
+      <canvas id="donutGastos"></canvas>
+      <div id="detalleGastos"></div>
+    </div>
+
+    <div class="seccion">
+      <h3>🪙 Ingresos por categoría (este mes)</h3>
+      <div id="legendIngresos"></div>
+      <canvas id="donutIngresos"></canvas>
+      <div id="detalleIngresos"></div>
+    </div>
+
+    <div class="seccion">
+      <h3>📈 Ahorro mensual</h3>
+      <canvas id="lineAhorro"></canvas>
+    </div>
   </div>
-  <input type="text" id="concepto" placeholder="Concepto (ej. Supermercado)">
-  <input type="number" id="importe" placeholder="Importe en €">
-  <select id="categoriaGasto">
-    <option value="Vivienda">🏠 Vivienda</option>
-    <option value="Comida">🍔 Comida</option>
-    <option value="Transporte">🚗 Transporte</option>
-    <option value="Ocio">🎉 Ocio</option>
-    <option value="Salud">💊 Salud</option>
-    <option value="Suscripciones">📱 Suscripciones</option>
-    <option value="Otros">📦 Otros</option>
-  </select>
-  <select id="categoriaIngreso" style="display:none;">
-    <option value="Nómina">💼 Nómina</option>
-    <option value="Paro/SEPE">🏛️ Paro / SEPE</option>
-    <option value="Extra">➕ Extra</option>
-    <option value="Otros ingresos">📦 Otros ingresos</option>
-  </select>
-  <button onclick="addMovimiento()">Guardar</button>
-</div>
 
-<div class="seccion">
-  <h3>🍩 Gastos por categoría (este mes)</h3>
-  <div id="legendGastos"></div>
-  <canvas id="donutGastos"></canvas>
-  <div id="detalleGastos"></div>
-</div>
-
-<div class="seccion">
-  <h3>🪙 Ingresos por categoría (este mes)</h3>
-  <div id="legendIngresos"></div>
-  <canvas id="donutIngresos"></canvas>
-  <div id="detalleIngresos"></div>
-</div>
-
-<div class="seccion">
-  <h3>📈 Ahorro mensual</h3>
-  <canvas id="lineAhorro"></canvas>
-</div>
-
-<div class="seccion">
-  <h3>📅 Calendario de movimientos</h3>
-  <div class="calNav">
-    <button onclick="cambiarMesCal(-1)">◀</button>
-    <span id="calTitulo" style="font-size:0.9em;"></span>
-    <button onclick="cambiarMesCal(1)">▶</button>
+  <!-- PÁGINA 2: PLAN DE AHORRO -->
+  <div class="page">
+    <h1 style="padding-left:0;">🎯 Plan de ahorro</h1>
+    <p style="font-size:0.85em;color:#94a3b8;">Fija cuánto quieres gastar en cada partida este mes. Se resta según registras gastos. Si te pasas, aparece en rojo.</p>
+    <div class="seccion" id="listaPresupuestos"></div>
+    <button onclick="cerrarMes()" id="btnCerrarMes" style="background:#4ade80;color:#0f172a;font-weight:bold;">✅ Cerrar mes y pasar sobrante a ahorro</button>
   </div>
-  <div class="calGrid" id="calGrid"></div>
-  <div id="detalleDia" style="margin-top:10px;"></div>
+
+  <!-- PÁGINA 3: CALENDARIO -->
+  <div class="page">
+    <h1 style="padding-left:0;">📅 Calendario</h1>
+    <div class="seccion">
+      <div class="calNav">
+        <button onclick="cambiarMesCal(-1)" style="width:auto;">◀</button>
+        <span id="calTitulo" style="font-size:0.9em;"></span>
+        <button onclick="cambiarMesCal(1)" style="width:auto;">▶</button>
+      </div>
+      <div class="calGrid" id="calGrid"></div>
+      <div id="detalleDia" style="margin-top:10px;"></div>
+    </div>
+  </div>
+
+</div>
+
+<div class="dots" id="dots">
+  <div class="dot activo" onclick="irAPagina(0)"></div>
+  <div class="dot" onclick="irAPagina(1)"></div>
+  <div class="dot" onclick="irAPagina(2)"></div>
 </div>
 
 <script src="https://cdnjs.cloudflare.com/ajax/libs/Chart.js/4.4.1/chart.umd.js"></script>
 <script>
 let tipoActual = 'gasto';
 let data = JSON.parse(localStorage.getItem('financeData')) || [];
+let presupuestos = JSON.parse(localStorage.getItem('presupuestos')) || {};
+let ahorroAcumulado = parseFloat(localStorage.getItem('ahorroAcumulado')) || 0;
+let mesesCerrados = JSON.parse(localStorage.getItem('mesesCerrados')) || [];
 let calFecha = new Date();
 
+const categoriasGasto = ['Vivienda','Comida','Transporte','Ocio','Salud','Suscripciones','Otros'];
 const emojisGasto = {Vivienda:'🏠',Comida:'🍔',Transporte:'🚗',Ocio:'🎉',Salud:'💊',Suscripciones:'📱',Otros:'📦'};
 const coloresGasto = {Vivienda:'#2a78d6',Comida:'#eb6834',Transporte:'#eda100',Ocio:'#1baf7a',Salud:'#e87ba4',Suscripciones:'#6250d6',Otros:'#94a3b8'};
 const emojisIngreso = {'Nómina':'💼','Paro/SEPE':'🏛️','Extra':'➕','Otros ingresos':'📦'};
@@ -115,6 +155,16 @@ const coloresIngreso = {'Nómina':'#1baf7a','Paro/SEPE':'#2a78d6','Extra':'#eda1
 
 let donutGastosChart, donutIngresosChart, lineChart;
 
+// --- PAGINACIÓN ---
+const pager = document.getElementById('pager');
+const dotsEl = document.getElementById('dots');
+function irAPagina(i){ pager.scrollTo({left: i*pager.clientWidth, behavior:'smooth'}); }
+pager.addEventListener('scroll', ()=>{
+  const idx = Math.round(pager.scrollLeft / pager.clientWidth);
+  [...dotsEl.children].forEach((d,i)=> d.classList.toggle('activo', i===idx));
+});
+
+// --- MOVIMIENTOS ---
 function cambiarTipo(t){
   tipoActual = t;
   document.getElementById('tabGasto').classList.toggle('activo', t==='gasto');
@@ -172,6 +222,7 @@ function mesActual(fecha){
   return d.getFullYear()+'-'+d.getMonth();
 }
 
+// --- RENDER GENERAL ---
 function render(){
   const ahora = mesActual(new Date());
   const delMes = data.filter(m => mesActual(m.fecha) === ahora);
@@ -182,6 +233,7 @@ function render(){
   const ahorroEl = document.getElementById('totalAhorro');
   ahorroEl.textContent = (ingresos-gastos).toFixed(0)+'€';
   ahorroEl.className = 'value ' + (ingresos-gastos >= 0 ? 'verde':'rojo');
+  document.getElementById('ahorroAcumuladoTxt').textContent = ahorroAcumulado.toFixed(0)+'€';
 
   renderDonut('gasto', delMes, coloresGasto, emojisGasto, 'legendGastos', 'donutGastos', 'detalleGastos');
   renderDonut('ingreso', delMes, coloresIngreso, emojisIngreso, 'legendIngresos', 'donutIngresos', 'detalleIngresos');
@@ -202,6 +254,7 @@ function render(){
   });
 
   renderCalendario();
+  renderPresupuestos();
 }
 
 function renderDonut(tipo, delMes, colores, emojiMap, legendId, canvasId, detalleId){
@@ -236,6 +289,7 @@ function mostrarDetalleCategoria(tipo, cat, delMes, emojiMap, detalleId){
   el.innerHTML = '<h3 style="margin-top:12px;">'+emojiMap[cat]+' '+cat+'</h3>' + lista.map(m=>filaMovimiento(m, emojiMap)).join('');
 }
 
+// --- CALENDARIO ---
 function cambiarMesCal(delta){
   calFecha.setMonth(calFecha.getMonth()+delta);
   renderCalendario();
@@ -273,6 +327,84 @@ function mostrarDetalleDia(movs, dia){
   el.innerHTML = '<h3>Día '+dia+'</h3>' + movs.map(m=>filaMovimiento(m, emojiMap)).join('');
 }
 
+// --- PLAN DE AHORRO ---
+function guardarPresupuestos(){
+  localStorage.setItem('presupuestos', JSON.stringify(presupuestos));
+}
+
+function renderPresupuestos(){
+  const mesKey = mesActual(new Date());
+  if(!presupuestos[mesKey]){
+    const claves = Object.keys(presupuestos).sort();
+    presupuestos[mesKey] = claves.length ? {...presupuestos[claves[claves.length-1]]} : {};
+    categoriasGasto.forEach(c=>{ if(!(c in presupuestos[mesKey])) presupuestos[mesKey][c] = 0; });
+    guardarPresupuestos();
+  }
+  const delMes = data.filter(m=>mesActual(m.fecha)===mesKey && m.tipo==='gasto');
+  const gastadoPorCat = {};
+  delMes.forEach(m=>{ gastadoPorCat[m.categoria] = (gastadoPorCat[m.categoria]||0) + m.importe; });
+
+  const cont = document.getElementById('listaPresupuestos');
+  cont.innerHTML = '';
+  categoriasGasto.forEach(cat=>{
+    const presu = presupuestos[mesKey][cat] || 0;
+    const gastado = gastadoPorCat[cat] || 0;
+    const restante = presu - gastado;
+    const pasado = restante < 0;
+    const pct = presu > 0 ? Math.min(100, (gastado/presu)*100) : 0;
+
+    const div = document.createElement('div');
+    div.className = 'partida';
+    div.innerHTML = `
+      <div class="partidaTop">
+        <span>${emojisGasto[cat]} ${cat}</span>
+        <span class="${pasado?'rojo':''}">${restante.toFixed(0)}€ restantes</span>
+      </div>
+      <div class="barra"><div class="barraInterior" style="width:${pct}%; background:${pasado?'#f87171':'#4ade80'}"></div></div>
+      <div style="display:flex; justify-content:space-between; align-items:center; margin-top:4px;">
+        <span style="font-size:0.75em; color:#94a3b8;">Gastado: ${gastado.toFixed(0)}€</span>
+        <input class="inputPresu" type="number" value="${presu}" onchange="actualizarPresupuesto('${cat}', this.value)" placeholder="Presupuesto">
+      </div>
+    `;
+    cont.appendChild(div);
+  });
+
+  const btn = document.getElementById('btnCerrarMes');
+  if(mesesCerrados.includes(mesKey)){
+    btn.textContent = '✅ Mes ya cerrado';
+    btn.style.background = '#334155';
+    btn.style.color = '#94a3b8';
+  } else {
+    btn.textContent = '✅ Cerrar mes y pasar sobrante a ahorro';
+    btn.style.background = '#4ade80';
+    btn.style.color = '#0f172a';
+  }
+}
+
+function actualizarPresupuesto(cat, valor){
+  const mesKey = mesActual(new Date());
+  presupuestos[mesKey][cat] = parseFloat(valor) || 0;
+  guardarPresupuestos();
+  renderPresupuestos();
+}
+
+function cerrarMes(){
+  const mesKey = mesActual(new Date());
+  if(mesesCerrados.includes(mesKey)){ alert('Este mes ya está cerrado.'); return; }
+  const delMes = data.filter(m=>mesActual(m.fecha)===mesKey);
+  const ingresos = delMes.filter(m=>m.tipo==='ingreso').reduce((s,m)=>s+m.importe,0);
+  const gastos = delMes.filter(m=>m.tipo==='gasto').reduce((s,m)=>s+m.importe,0);
+  const neto = ingresos - gastos;
+  if(!confirm('¿Cerrar el mes? Se añadirán '+neto.toFixed(0)+'€ al ahorro acumulado.')) return;
+  ahorroAcumulado += neto;
+  mesesCerrados.push(mesKey);
+  localStorage.setItem('ahorroAcumulado', ahorroAcumulado);
+  localStorage.setItem('mesesCerrados', JSON.stringify(mesesCerrados));
+  render();
+  alert('Mes cerrado. Ahorro acumulado: '+ahorroAcumulado.toFixed(0)+'€');
+}
+
+// --- INICIO ---
 cambiarTipo('gasto');
 render();
 
