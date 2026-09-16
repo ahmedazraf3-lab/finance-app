@@ -1,0 +1,169 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<meta name="theme-color" content="#0f172a">
+<title>Mis Finanzas</title>
+<link rel="manifest" href="manifest.json">
+<link rel="apple-touch-icon" href="icon-192.png">
+<style>
+  body{margin:0;font-family:sans-serif;background:#0f172a;color:#fff;padding:16px;padding-bottom:40px;}
+  h1{font-size:1.4em;margin-bottom:16px;}
+  h3{margin:0 0 10px;font-size:1em;}
+  .cards{display:grid;grid-template-columns:1fr 1fr 1fr;gap:8px;margin-bottom:20px;}
+  .card{background:#1e293b;border-radius:12px;padding:10px;text-align:center;}
+  .card .label{font-size:0.75em;color:#94a3b8;}
+  .card .value{font-size:1.1em;font-weight:bold;margin-top:4px;}
+  .verde{color:#4ade80;} .rojo{color:#f87171;}
+  .seccion{background:#1e293b;border-radius:14px;padding:14px;margin-bottom:16px;}
+  select,input{width:100%;padding:8px;margin-bottom:8px;border-radius:8px;border:none;box-sizing:border-box;}
+  .fila{display:flex;gap:6px;}
+  .fila > *{flex:1;}
+  button{background:#3b82f6;color:#fff;border:none;padding:10px;border-radius:8px;width:100%;font-size:0.95em;cursor:pointer;}
+  .tabs{display:flex;gap:6px;margin-bottom:10px;}
+  .tab{flex:1;padding:8px;border-radius:8px;text-align:center;background:#334155;cursor:pointer;font-size:0.85em;}
+  .tab.activo{background:#3b82f6;}
+  .catbtn{display:flex;align-items:center;gap:6px;background:#334155;border:none;color:#fff;padding:6px 10px;border-radius:20px;font-size:0.8em;margin:3px;}
+  .movimiento{display:flex;justify-content:space-between;padding:6px 0;border-top:1px solid #334155;font-size:0.9em;}
+  canvas{max-width:100%;}
+</style>
+</head>
+<body>
+<h1>💰 Mis Finanzas</h1>
+
+<div class="cards">
+  <div class="card"><div class="label">📥 Ingresos</div><div class="value verde" id="totalIngresos">0€</div></div>
+  <div class="card"><div class="label">📤 Gastos</div><div class="value rojo" id="totalGastos">0€</div></div>
+  <div class="card"><div class="label">🐷 Ahorro</div><div class="value" id="totalAhorro">0€</div></div>
+</div>
+
+<div class="seccion">
+  <h3>➕ Añadir movimiento</h3>
+  <div class="tabs">
+    <div class="tab activo" id="tabGasto" onclick="cambiarTipo('gasto')">📤 Gasto</div>
+    <div class="tab" id="tabIngreso" onclick="cambiarTipo('ingreso')">📥 Ingreso</div>
+  </div>
+  <input type="text" id="concepto" placeholder="Concepto (ej. Supermercado)">
+  <input type="number" id="importe" placeholder="Importe en €">
+  <select id="categoria">
+    <option value="Vivienda">🏠 Vivienda</option>
+    <option value="Comida">🍔 Comida</option>
+    <option value="Transporte">🚗 Transporte</option>
+    <option value="Ocio">🎉 Ocio</option>
+    <option value="Salud">💊 Salud</option>
+    <option value="Suscripciones">📱 Suscripciones</option>
+    <option value="Otros">📦 Otros</option>
+  </select>
+  <button onclick="addMovimiento()">Guardar</button>
+</div>
+
+<div class="seccion">
+  <h3>🍩 Gastos por categoría (este mes)</h3>
+  <div id="legendCategorias"></div>
+  <canvas id="donutGastos"></canvas>
+  <div id="detalleCategoria"></div>
+</div>
+
+<div class="seccion">
+  <h3>📈 Ahorro mensual</h3>
+  <canvas id="lineAhorro"></canvas>
+</div>
+
+<script src="https://cdnjs.cloudflare.com/ajax/libs/Chart.js/4.4.1/chart.umd.js"></script>
+<script>
+let tipoActual = 'gasto';
+let data = JSON.parse(localStorage.getItem('financeData')) || [];
+const emojis = {Vivienda:'🏠',Comida:'🍔',Transporte:'🚗',Ocio:'🎉',Salud:'💊',Suscripciones:'📱',Otros:'📦'};
+const coloresCat = {Vivienda:'#2a78d6',Comida:'#eb6834',Transporte:'#eda100',Ocio:'#1baf7a',Salud:'#e87ba4',Suscripciones:'#6250d6',Otros:'#94a3b8'};
+let donutChart, lineChart;
+
+function cambiarTipo(t){
+  tipoActual = t;
+  document.getElementById('tabGasto').classList.toggle('activo', t==='gasto');
+  document.getElementById('tabIngreso').classList.toggle('activo', t==='ingreso');
+  document.getElementById('categoria').style.display = t==='gasto' ? 'block' : 'none';
+}
+
+function addMovimiento(){
+  const concepto = document.getElementById('concepto').value;
+  const importe = parseFloat(document.getElementById('importe').value);
+  const categoria = document.getElementById('categoria').value;
+  if(!concepto || !importe){ alert('Rellena concepto e importe'); return; }
+  data.push({tipo:tipoActual, concepto, importe, categoria: tipoActual==='gasto'?categoria:null, fecha: new Date().toISOString()});
+  localStorage.setItem('financeData', JSON.stringify(data));
+  document.getElementById('concepto').value='';
+  document.getElementById('importe').value='';
+  render();
+}
+
+function mesActual(fecha){
+  const d = new Date(fecha);
+  return d.getFullYear()+'-'+d.getMonth();
+}
+
+function render(){
+  const ahora = mesActual(new Date());
+  const delMes = data.filter(m => mesActual(m.fecha) === ahora);
+  const ingresos = delMes.filter(m=>m.tipo==='ingreso').reduce((s,m)=>s+m.importe,0);
+  const gastos = delMes.filter(m=>m.tipo==='gasto').reduce((s,m)=>s+m.importe,0);
+  document.getElementById('totalIngresos').textContent = ingresos.toFixed(0)+'€';
+  document.getElementById('totalGastos').textContent = gastos.toFixed(0)+'€';
+  const ahorroEl = document.getElementById('totalAhorro');
+  ahorroEl.textContent = (ingresos-gastos).toFixed(0)+'€';
+  ahorroEl.className = 'value ' + (ingresos-gastos >= 0 ? 'verde':'rojo');
+
+  const porCategoria = {};
+  delMes.filter(m=>m.tipo==='gasto').forEach(m=>{
+    porCategoria[m.categoria] = (porCategoria[m.categoria]||0) + m.importe;
+  });
+  const cats = Object.keys(porCategoria);
+  const legend = document.getElementById('legendCategorias');
+  legend.innerHTML = '';
+  cats.forEach(c=>{
+    const btn = document.createElement('button');
+    btn.className='catbtn';
+    btn.innerHTML = emojis[c]+' '+c+' · '+porCategoria[c].toFixed(0)+'€';
+    btn.onclick = ()=>mostrarDetalle(c, delMes);
+    legend.appendChild(btn);
+  });
+
+  if(donutChart) donutChart.destroy();
+  donutChart = new Chart(document.getElementById('donutGastos'), {
+    type:'doughnut',
+    data:{ labels:cats, datasets:[{ data:cats.map(c=>porCategoria[c]), backgroundColor:cats.map(c=>coloresCat[c]), borderColor:'#1e293b', borderWidth:2 }]},
+    options:{ plugins:{legend:{display:false}},
+      onClick:(evt,els)=>{ if(els.length){ mostrarDetalle(cats[els[0].index], delMes); } } }
+  });
+
+  const historico = {};
+  data.forEach(m=>{
+    const key = mesActual(m.fecha);
+    if(!historico[key]) historico[key] = {ingresos:0, gastos:0};
+    historico[key][m.tipo==='ingreso'?'ingresos':'gastos'] += m.importe;
+  });
+  const meses = Object.keys(historico).sort().slice(-6);
+  const ahorroHist = meses.map(k => historico[k].ingresos - historico[k].gastos);
+  if(lineChart) lineChart.destroy();
+  lineChart = new Chart(document.getElementById('lineAhorro'), {
+    type:'line',
+    data:{ labels: meses.map(m=>m.split('-')[1]), datasets:[{ data: ahorroHist, borderColor:'#4ade80', backgroundColor:'rgba(74,222,128,0.15)', fill:true, tension:0.3, pointRadius:4 }]},
+    options:{ plugins:{legend:{display:false}} }
+  });
+}
+
+function mostrarDetalle(cat, delMes){
+  const lista = delMes.filter(m=>m.tipo==='gasto' && m.categoria===cat);
+  const el = document.getElementById('detalleCategoria');
+  el.innerHTML = '<h3>'+emojis[cat]+' '+cat+'</h3>' + lista.map(m=>
+    `<div class="movimiento"><span>${m.concepto}</span><span>${m.importe.toFixed(0)}€</span></div>`
+  ).join('');
+}
+
+cambiarTipo('gasto');
+render();
+
+if('serviceWorker' in navigator){ navigator.serviceWorker.register('sw.js'); }
+</script>
+</body>
+</html>
