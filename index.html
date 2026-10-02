@@ -9,56 +9,69 @@
 <link rel="apple-touch-icon" href="icon-192.png">
 <style>
   *{box-sizing:border-box;}
-  body{margin:0;font-family:sans-serif;background:linear-gradient(160deg,#1e1b4b,#0f172a 55%);color:#fff;overflow-x:hidden;min-height:100vh;padding-bottom:70px;}
-  h1{font-size:1.3em;margin:0;padding:16px 16px 8px;}
-  h3{margin:0 0 10px;font-size:1em;}
+  body{margin:0;font-family:sans-serif;background:linear-gradient(160deg,#1e1b4b,#0f172a 55%);color:#fff;overflow-x:hidden;min-height:100vh;padding-bottom:74px;}
+  h1{font-size:1.25em;font-weight:700;margin:0;padding:18px 18px 4px;}
+  h3{margin:0 0 12px;font-size:0.95em;font-weight:700;letter-spacing:0.2px;}
   .pager{display:flex;overflow-x:auto;scroll-snap-type:x mandatory;-webkit-overflow-scrolling:touch;}
   .page{flex:0 0 100%;scroll-snap-align:start;padding:0 16px 20px;}
-  .cards{display:grid;grid-template-columns:1fr 1fr 1fr;gap:8px;margin-bottom:10px;}
-  .card{border-radius:14px;padding:10px;text-align:center;}
+  .subtitulo{font-size:0.78em;color:#94a3b8;padding:0 18px;margin:-4px 0 14px;}
+
+  .ahorroCard{background:linear-gradient(135deg,#7c3aed,#4338ca);border-radius:18px;padding:16px;margin-bottom:14px;display:flex;justify-content:space-between;align-items:center;box-shadow:0 8px 20px -8px rgba(124,58,237,0.5);}
+  .ahorroCard .label{font-size:0.75em;opacity:0.85;}
+  .ahorroCard .valor{font-size:1.7em;font-weight:800;margin-top:2px;}
+  .ahorroCard .icono{font-size:2em;opacity:0.9;}
+
+  .cards{display:grid;grid-template-columns:1fr 1fr;gap:10px;margin-bottom:16px;}
+  .card{border-radius:16px;padding:14px;}
   .cardIngreso{background:linear-gradient(135deg,#0d9488,#115e59);}
   .cardGasto{background:linear-gradient(135deg,#be185d,#831843);}
-  .cardAhorro{background:linear-gradient(135deg,#7c3aed,#4c1d95);}
   .card .label{font-size:0.72em;opacity:0.85;}
-  .card .value{font-size:1.05em;font-weight:bold;margin-top:4px;}
+  .card .value{font-size:1.3em;font-weight:800;margin-top:4px;}
+  .card .sub{font-size:0.7em;opacity:0.75;margin-top:2px;}
   .rojo{color:#fda4af !important;}
-  .acumulado{font-size:0.85em;opacity:0.8;text-align:center;margin-bottom:16px;}
-  .seccion{background:#1e293bcc;border-radius:16px;padding:14px;margin-bottom:16px;border:1px solid #33415580;}
-  select,input{width:100%;padding:9px;margin-bottom:8px;border-radius:10px;border:none;background:#334155;color:#fff;}
-  button{background:linear-gradient(135deg,#8b5cf6,#ec4899);color:#fff;border:none;padding:11px;border-radius:10px;width:100%;font-size:0.95em;cursor:pointer;font-weight:600;}
+
+  .accesos{display:grid;grid-template-columns:1fr 1fr 1fr;gap:8px;margin-bottom:18px;}
+  .accesoBtn{background:#1e293bcc;border:1px solid #33415580;border-radius:14px;padding:12px 6px;text-align:center;cursor:pointer;}
+  .accesoBtn .ic{font-size:1.5em;display:block;margin-bottom:4px;}
+  .accesoBtn span{font-size:0.72em;color:#cbd5e1;}
+
+  .seccion{background:#1e293bcc;border-radius:18px;padding:16px;margin-bottom:16px;border:1px solid #33415580;}
+  select,input{width:100%;padding:10px;margin-bottom:9px;border-radius:10px;border:none;background:#334155;color:#fff;font-size:0.9em;}
+  button{background:linear-gradient(135deg,#8b5cf6,#ec4899);color:#fff;border:none;padding:12px;border-radius:12px;width:100%;font-size:0.95em;cursor:pointer;font-weight:700;}
   .tabs{display:flex;gap:6px;margin-bottom:10px;}
-  .tab{flex:1;padding:8px;border-radius:10px;text-align:center;background:#334155;cursor:pointer;font-size:0.85em;}
+  .tab{flex:1;padding:9px;border-radius:10px;text-align:center;background:#334155;cursor:pointer;font-size:0.85em;}
   .tab.activo{background:linear-gradient(135deg,#8b5cf6,#ec4899);}
-  .catbtn{display:inline-flex;align-items:center;gap:6px;background:#334155;border:none;color:#fff;padding:6px 10px;border-radius:20px;font-size:0.8em;margin:3px;cursor:pointer;}
-  .movimiento{display:flex;justify-content:space-between;align-items:center;padding:6px 0;border-top:1px solid #334155;font-size:0.9em;gap:6px;}
+  .catbtn{display:inline-flex;align-items:center;gap:6px;background:#334155;border:none;color:#fff;padding:7px 11px;border-radius:20px;font-size:0.8em;margin:3px;cursor:pointer;}
+  .movimiento{display:flex;justify-content:space-between;align-items:center;padding:7px 0;border-top:1px solid #33415580;font-size:0.9em;gap:6px;}
   .movimiento .info{flex:1;}
-  .movimiento .acciones{display:flex;gap:8px;}
+  .movimiento .acciones{display:flex;gap:10px;}
   .movimiento .acciones span{cursor:pointer;font-size:1em;}
   canvas{max-width:100%;}
-  .partida{margin-bottom:16px;}
-  .partidaTop{display:flex;justify-content:space-between;font-size:0.9em;margin-bottom:4px;}
-  .barra{height:8px;background:#334155;border-radius:4px;overflow:hidden;}
-  .barraInterior{height:100%;}
-  .inputPresu{width:70px;padding:5px;border-radius:6px;border:none;font-size:0.8em;}
+  .chartWrap{min-height:180px;}
+  .partida{margin-bottom:18px;}
+  .partidaTop{display:flex;justify-content:space-between;font-size:0.9em;margin-bottom:5px;}
+  .barra{height:9px;background:#334155;border-radius:5px;overflow:hidden;}
+  .barraInterior{height:100%;border-radius:5px;}
+  .inputPresu{width:72px;padding:6px;border-radius:8px;border:none;font-size:0.8em;}
   .calGrid{display:grid;grid-template-columns:repeat(7,1fr);gap:4px;text-align:center;}
-  .calDia{background:#334155;border-radius:8px;padding:6px 2px;font-size:0.75em;position:relative;cursor:pointer;}
+  .calDia{background:#334155;border-radius:10px;padding:7px 2px;font-size:0.75em;position:relative;cursor:pointer;}
   .calDia.vacio{background:transparent;cursor:default;}
   .calDots{display:flex;justify-content:center;gap:2px;margin-top:2px;}
   .calDots span{width:5px;height:5px;border-radius:50%;display:inline-block;}
-  .calNav{display:flex;justify-content:space-between;align-items:center;margin-bottom:8px;}
-  .calNav button{width:auto;padding:4px 10px;}
-  .pagoFijo{display:flex;justify-content:space-between;align-items:center;padding:8px 0;border-top:1px solid #334155;font-size:0.85em;}
-  .badge{padding:3px 8px;border-radius:12px;font-size:0.7em;font-weight:600;}
+  .calNav{display:flex;justify-content:space-between;align-items:center;margin-bottom:10px;}
+  .calNav button{width:auto;padding:5px 14px;}
+  .pagoFijo{display:flex;justify-content:space-between;align-items:center;padding:9px 0;border-top:1px solid #33415580;font-size:0.85em;}
+  .badge{padding:3px 9px;border-radius:12px;font-size:0.7em;font-weight:700;}
   .badgePagado{background:#065f46;color:#6ee7b7;}
   .badgePendiente{background:#78350f;color:#fcd34d;}
   .badgeAtrasado{background:#7f1d1d;color:#fca5a5;}
-  .diarioBig{font-size:2.4em;font-weight:bold;text-align:center;margin:10px 0;}
-  .navInferior{position:fixed;bottom:0;left:0;right:0;display:flex;background:#0f172aee;backdrop-filter:blur(6px);border-top:1px solid #334155;z-index:10;}
-  .navItem{flex:1;text-align:center;padding:10px 0 8px;font-size:0.7em;color:#94a3b8;cursor:pointer;}
+  .diarioBig{font-size:2.6em;font-weight:800;text-align:center;margin:12px 0 4px;}
+  .navInferior{position:fixed;bottom:0;left:0;right:0;display:flex;background:#0f172af2;backdrop-filter:blur(8px);border-top:1px solid #33415580;z-index:10;}
+  .navItem{flex:1;text-align:center;padding:11px 0 9px;font-size:0.68em;color:#64748b;cursor:pointer;transition:color .15s;}
   .navItem.activo{color:#ec4899;}
-  .navItem .icono{font-size:1.3em;display:block;}
-  .tabsChicos{display:flex;gap:6px;margin-bottom:8px;}
-  .tabChico{flex:1;padding:6px;border-radius:8px;text-align:center;background:#334155;cursor:pointer;font-size:0.78em;}
+  .navItem .icono{font-size:1.35em;display:block;}
+  .tabsChicos{display:flex;gap:6px;margin-bottom:9px;}
+  .tabChico{flex:1;padding:7px;border-radius:9px;text-align:center;background:#334155;cursor:pointer;font-size:0.78em;}
   .tabChico.activo{background:linear-gradient(135deg,#f59e0b,#ea580c);}
 </style>
 </head>
@@ -69,12 +82,34 @@
 
   <!-- PÁGINA 1: PANEL PRINCIPAL -->
   <div class="page">
-    <div class="cards">
-      <div class="card cardIngreso"><div class="label">📥 Ingresos</div><div class="value" id="totalIngresos">0€</div></div>
-      <div class="card cardGasto"><div class="label">📤 Gastos</div><div class="value" id="totalGastos">0€</div></div>
-      <div class="card cardAhorro"><div class="label">🐷 Ahorro mes</div><div class="value" id="totalAhorro">0€</div></div>
+
+    <div class="ahorroCard">
+      <div>
+        <div class="label">💎 Ahorro acumulado</div>
+        <div class="valor" id="ahorroAcumuladoTxt">0€</div>
+      </div>
+      <div class="icono">📈</div>
     </div>
-    <div class="acumulado">💎 Ahorro acumulado: <b id="ahorroAcumuladoTxt">0€</b></div>
+
+    <div class="cards">
+      <div class="card cardIngreso">
+        <div class="label">📥 Ingresos</div>
+        <div class="value" id="totalIngresos">0€</div>
+        <div class="sub">este mes</div>
+      </div>
+      <div class="card cardGasto">
+        <div class="label">📤 Gastos</div>
+        <div class="value" id="totalGastos">0€</div>
+        <div class="sub">este mes</div>
+      </div>
+    </div>
+    <p style="text-align:center; font-size:0.85em; opacity:0.8; margin:-6px 0 16px;">Ahorro del mes: <b id="totalAhorro">0€</b></p>
+
+    <div class="accesos">
+      <div class="accesoBtn" onclick="irAPagina(1)"><span class="ic">🎯</span><span>Ahorro</span></div>
+      <div class="accesoBtn" onclick="irAPagina(2)"><span class="ic">📅</span><span>Calendario</span></div>
+      <div class="accesoBtn" onclick="irAPagina(3)"><span class="ic">📆</span><span>Diario</span></div>
+    </div>
 
     <div class="seccion">
       <h3>➕ Añadir movimiento</h3>
@@ -107,22 +142,22 @@
     </div>
 
     <div class="seccion">
-      <h3>🍩 Gastos por categoría (este mes)</h3>
+      <h3>🍩 Gastos por categoría</h3>
       <div id="legendGastos"></div>
-      <canvas id="donutGastos"></canvas>
+      <div class="chartWrap"><canvas id="donutGastos"></canvas></div>
       <div id="detalleGastos"></div>
     </div>
 
     <div class="seccion">
-      <h3>🪙 Ingresos por categoría (este mes)</h3>
+      <h3>🪙 Ingresos por categoría</h3>
       <div id="legendIngresos"></div>
-      <canvas id="donutIngresos"></canvas>
+      <div class="chartWrap"><canvas id="donutIngresos"></canvas></div>
       <div id="detalleIngresos"></div>
     </div>
 
     <div class="seccion">
       <h3>📈 Ahorro mensual</h3>
-      <canvas id="lineAhorro"></canvas>
+      <div class="chartWrap"><canvas id="lineAhorro"></canvas></div>
     </div>
 
     <div class="seccion">
@@ -131,29 +166,29 @@
         <select id="compMes1" onchange="renderComparativa()"></select>
         <select id="compMes2" onchange="renderComparativa()"></select>
       </div>
-      <canvas id="barraComparativa"></canvas>
+      <div class="chartWrap"><canvas id="barraComparativa"></canvas></div>
     </div>
 
     <div class="seccion">
       <h3>💾 Copia de seguridad</h3>
       <button onclick="exportarDatos()">⬇️ Exportar mis datos (.json)</button>
-      <p style="text-align:center; font-size:0.8em; opacity:0.7; margin:8px 0;">o</p>
+      <p style="text-align:center; font-size:0.8em; opacity:0.7; margin:10px 0;">o</p>
       <input type="file" id="archivoImportar" accept=".json" onchange="importarDatos(event)">
-      <button onclick="generarResumenPDF()" style="margin-top:8px; background:linear-gradient(135deg,#0ea5e9,#0284c7);">🖨️ Descargar resumen en PDF</button>
+      <button onclick="generarResumenPDF()" style="margin-top:9px; background:linear-gradient(135deg,#0ea5e9,#0284c7);">🖨️ Descargar resumen en PDF</button>
     </div>
   </div>
 
   <!-- PÁGINA 2: PLAN DE AHORRO -->
   <div class="page">
     <h1 style="padding-left:0;">🎯 Plan de ahorro</h1>
-    <p style="font-size:0.85em;opacity:0.75;">Fija cuánto quieres gastar en cada partida este mes.</p>
+    <p class="subtitulo" style="padding-left:0;">Fija cuánto quieres gastar en cada partida este mes.</p>
     <div class="seccion" id="listaPresupuestos"></div>
     <button onclick="cerrarMes()" id="btnCerrarMes" style="background:linear-gradient(135deg,#34d399,#059669);">✅ Cerrar mes y pasar sobrante a ahorro</button>
 
-    <div class="seccion" style="margin-top:16px;">
+    <div class="seccion" style="margin-top:18px;">
       <h3>🔁 Pagos fijos</h3>
       <div id="listaPagosFijos"></div>
-      <button onclick="addPagoFijo()" style="margin-top:8px;">➕ Añadir pago fijo</button>
+      <button onclick="addPagoFijo()" style="margin-top:9px;">➕ Añadir pago fijo</button>
     </div>
   </div>
 
@@ -178,7 +213,7 @@
       <label style="font-size:0.85em;opacity:0.8;">¿Cuánto quieres poder gastar cada día?</label>
       <input type="number" id="inputPresupuestoDiario" placeholder="Ej. 15" onchange="actualizarPresupuestoDiario(this.value)">
       <div class="diarioBig" id="disponibleHoy">0€</div>
-      <p style="text-align:center; font-size:0.8em; opacity:0.7;">disponible para gastar hoy (solo cuenta gastos variables)</p>
+      <p style="text-align:center; font-size:0.8em; opacity:0.7;">disponible para gastar hoy (solo gastos variables)</p>
     </div>
     <div class="seccion">
       <h3>📋 Detalle del mes</h3>
@@ -476,7 +511,7 @@ function renderPresupuestos(){
         <span class="${pasado?'rojo':''}">${restante.toFixed(0)}€ restantes</span>
       </div>
       <div class="barra"><div class="barraInterior" style="width:${pct}%; background:${pasado?'#f87171':'#4ade80'}"></div></div>
-      <div style="display:flex; justify-content:space-between; align-items:center; margin-top:4px;">
+      <div style="display:flex; justify-content:space-between; align-items:center; margin-top:5px;">
         <span style="font-size:0.75em; opacity:0.7;">Gastado: ${gastado.toFixed(0)}€</span>
         <input class="inputPresu" type="number" value="${presu}" onchange="actualizarPresupuesto('${cat}', this.value)" placeholder="Presupuesto">
       </div>
@@ -635,7 +670,7 @@ function importarDatos(event){
   reader.readAsText(file);
 }
 
-// --- EXPORTAR RESUMEN EN PDF (vía impresión, sin librerías externas) ---
+// --- EXPORTAR RESUMEN EN PDF ---
 function generarResumenPDF(){
   const mesKey = mesActual(new Date());
   const delMes = data.filter(m=>mesActual(m.fecha)===mesKey).sort((a,b)=> new Date(a.fecha)-new Date(b.fecha));
