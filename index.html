@@ -57,6 +57,9 @@
   .navItem{flex:1;text-align:center;padding:10px 0 8px;font-size:0.7em;color:#94a3b8;cursor:pointer;}
   .navItem.activo{color:#ec4899;}
   .navItem .icono{font-size:1.3em;display:block;}
+  .tabsChicos{display:flex;gap:6px;margin-bottom:8px;}
+  .tabChico{flex:1;padding:6px;border-radius:8px;text-align:center;background:#334155;cursor:pointer;font-size:0.78em;}
+  .tabChico.activo{background:linear-gradient(135deg,#f59e0b,#ea580c);}
 </style>
 </head>
 <body>
@@ -78,6 +81,10 @@
       <div class="tabs">
         <div class="tab activo" id="tabGasto" onclick="cambiarTipo('gasto')">📤 Gasto</div>
         <div class="tab" id="tabIngreso" onclick="cambiarTipo('ingreso')">📥 Ingreso</div>
+      </div>
+      <div class="tabsChicos" id="tiposVariabilidad">
+        <div class="tabChico activo" id="tabVariable" onclick="cambiarVariabilidad('variable')">🔄 Variable</div>
+        <div class="tabChico" id="tabFijo" onclick="cambiarVariabilidad('fijo')">📌 Fijo</div>
       </div>
       <input type="text" id="concepto" placeholder="Concepto (ej. Supermercado)">
       <input type="number" id="importe" placeholder="Importe en €">
@@ -129,9 +136,10 @@
 
     <div class="seccion">
       <h3>💾 Copia de seguridad</h3>
-      <button onclick="exportarDatos()">⬇️ Exportar mis datos</button>
+      <button onclick="exportarDatos()">⬇️ Exportar mis datos (.json)</button>
       <p style="text-align:center; font-size:0.8em; opacity:0.7; margin:8px 0;">o</p>
       <input type="file" id="archivoImportar" accept=".json" onchange="importarDatos(event)">
+      <button onclick="generarResumenPDF()" style="margin-top:8px; background:linear-gradient(135deg,#0ea5e9,#0284c7);">🖨️ Descargar resumen en PDF</button>
     </div>
   </div>
 
@@ -170,7 +178,7 @@
       <label style="font-size:0.85em;opacity:0.8;">¿Cuánto quieres poder gastar cada día?</label>
       <input type="number" id="inputPresupuestoDiario" placeholder="Ej. 15" onchange="actualizarPresupuestoDiario(this.value)">
       <div class="diarioBig" id="disponibleHoy">0€</div>
-      <p style="text-align:center; font-size:0.8em; opacity:0.7;">disponible para gastar hoy</p>
+      <p style="text-align:center; font-size:0.8em; opacity:0.7;">disponible para gastar hoy (solo cuenta gastos variables)</p>
     </div>
     <div class="seccion">
       <h3>📋 Detalle del mes</h3>
@@ -190,6 +198,7 @@
 <script src="https://cdnjs.cloudflare.com/ajax/libs/Chart.js/4.4.1/chart.umd.js"></script>
 <script>
 let tipoActual = 'gasto';
+let variabilidadActual = 'variable';
 let data = JSON.parse(localStorage.getItem('financeData')) || [];
 let presupuestos = JSON.parse(localStorage.getItem('presupuestos')) || {};
 let ahorroAcumulado = parseFloat(localStorage.getItem('ahorroAcumulado')) || 0;
@@ -222,6 +231,13 @@ function cambiarTipo(t){
   document.getElementById('tabIngreso').classList.toggle('activo', t==='ingreso');
   document.getElementById('categoriaGasto').style.display = t==='gasto' ? 'block' : 'none';
   document.getElementById('categoriaIngreso').style.display = t==='ingreso' ? 'block' : 'none';
+  document.getElementById('tiposVariabilidad').style.display = t==='gasto' ? 'flex' : 'none';
+}
+
+function cambiarVariabilidad(v){
+  variabilidadActual = v;
+  document.getElementById('tabVariable').classList.toggle('activo', v==='variable');
+  document.getElementById('tabFijo').classList.toggle('activo', v==='fijo');
 }
 
 function addMovimiento(){
@@ -229,7 +245,11 @@ function addMovimiento(){
   const importe = parseFloat(document.getElementById('importe').value);
   const categoria = tipoActual==='gasto' ? document.getElementById('categoriaGasto').value : document.getElementById('categoriaIngreso').value;
   if(!concepto || !importe){ alert('Rellena concepto e importe'); return; }
-  data.push({id: Date.now()+Math.random(), tipo:tipoActual, concepto, importe, categoria, fecha: new Date().toISOString()});
+  data.push({
+    id: Date.now()+Math.random(), tipo:tipoActual, concepto, importe, categoria,
+    variabilidad: tipoActual==='gasto' ? variabilidadActual : null,
+    fecha: new Date().toISOString()
+  });
   guardar();
   document.getElementById('concepto').value='';
   document.getElementById('importe').value='';
@@ -259,8 +279,9 @@ function editarMovimiento(id){
 }
 
 function filaMovimiento(m, emojiMap){
+  const etiquetaFijo = m.tipo==='gasto' ? (m.variabilidad==='fijo' ? ' 📌' : ' 🔄') : '';
   return `<div class="movimiento">
-    <span class="info">${emojiMap[m.categoria]||'📦'} ${m.concepto} — ${m.importe.toFixed(0)}€</span>
+    <span class="info">${emojiMap[m.categoria]||'📦'} ${m.concepto}${etiquetaFijo} — ${m.importe.toFixed(0)}€</span>
     <span class="acciones">
       <span onclick="editarMovimiento(${m.id})">✏️</span>
       <span onclick="eliminarMovimiento(${m.id})">🗑️</span>
@@ -539,7 +560,7 @@ function renderPagosFijos(){
   }).join('');
 }
 
-// --- GASTO DIARIO ---
+// --- GASTO DIARIO (solo cuenta gastos variables) ---
 function actualizarPresupuestoDiario(valor){
   presupuestoDiario = parseFloat(valor) || 0;
   localStorage.setItem('presupuestoDiario', presupuestoDiario);
@@ -551,15 +572,15 @@ function renderDiario(){
   const hoy = new Date();
   const anio = hoy.getFullYear(), mes = hoy.getMonth(), diaHoy = hoy.getDate();
 
-  const gastoPorDia = (d) => data.filter(m=>{
+  const gastoVariablePorDia = (d) => data.filter(m=>{
     const f = new Date(m.fecha);
-    return m.tipo==='gasto' && f.getFullYear()===anio && f.getMonth()===mes && f.getDate()===d;
+    return m.tipo==='gasto' && m.variabilidad!=='fijo' && f.getFullYear()===anio && f.getMonth()===mes && f.getDate()===d;
   }).reduce((s,m)=>s+m.importe,0);
 
   let acumulado = 0;
   const filas = [];
   for(let d=1; d<=diaHoy; d++){
-    const gastado = gastoPorDia(d);
+    const gastado = gastoVariablePorDia(d);
     acumulado += presupuestoDiario - gastado;
     filas.push({dia:d, gastado, saldo:acumulado});
   }
@@ -575,11 +596,9 @@ function renderDiario(){
   ).join('');
 }
 
-// --- EXPORTAR / IMPORTAR ---
+// --- EXPORTAR / IMPORTAR JSON ---
 function exportarDatos(){
-  const backup = {
-    financeData: data, presupuestos, ahorroAcumulado, mesesCerrados, pagosFijos, presupuestoDiario
-  };
+  const backup = { financeData: data, presupuestos, ahorroAcumulado, mesesCerrados, pagosFijos, presupuestoDiario };
   const blob = new Blob([JSON.stringify(backup, null, 2)], {type:'application/json'});
   const url = URL.createObjectURL(blob);
   const a = document.createElement('a');
@@ -614,6 +633,55 @@ function importarDatos(event){
     } catch(err){ alert('El archivo no es válido.'); }
   };
   reader.readAsText(file);
+}
+
+// --- EXPORTAR RESUMEN EN PDF (vía impresión, sin librerías externas) ---
+function generarResumenPDF(){
+  const mesKey = mesActual(new Date());
+  const delMes = data.filter(m=>mesActual(m.fecha)===mesKey).sort((a,b)=> new Date(a.fecha)-new Date(b.fecha));
+  const ingresos = delMes.filter(m=>m.tipo==='ingreso').reduce((s,m)=>s+m.importe,0);
+  const gastos = delMes.filter(m=>m.tipo==='gasto').reduce((s,m)=>s+m.importe,0);
+
+  const filas = delMes.map(m => `
+    <tr>
+      <td>${new Date(m.fecha).toLocaleDateString('es-ES')}</td>
+      <td>${m.tipo==='ingreso' ? 'Ingreso' : 'Gasto'}</td>
+      <td>${m.concepto}</td>
+      <td>${m.categoria||''}${m.tipo==='gasto' ? (m.variabilidad==='fijo' ? ' (Fijo)' : ' (Variable)') : ''}</td>
+      <td style="text-align:right;">${m.importe.toFixed(2)}€</td>
+    </tr>`).join('');
+
+  const html = `
+    <html><head><meta charset="UTF-8"><title>Resumen financiero</title>
+    <style>
+      body{font-family:Arial, sans-serif; color:#000; padding:20px;}
+      h1{font-size:18px; margin-bottom:0;}
+      p.sub{color:#555; margin-top:4px;}
+      table{width:100%; border-collapse:collapse; margin-top:16px; font-size:13px;}
+      th,td{border-bottom:1px solid #ccc; padding:6px 4px; text-align:left;}
+      th{background:#eee;}
+      .resumen{margin-top:16px; font-size:14px;}
+      .resumen b{font-size:15px;}
+    </style></head>
+    <body>
+      <h1>Resumen financiero</h1>
+      <p class="sub">${nombreMes(mesKey)}</p>
+      <div class="resumen">
+        <p>Ingresos totales: <b>${ingresos.toFixed(2)}€</b></p>
+        <p>Gastos totales: <b>${gastos.toFixed(2)}€</b></p>
+        <p>Ahorro del mes: <b>${(ingresos-gastos).toFixed(2)}€</b></p>
+        <p>Ahorro acumulado: <b>${ahorroAcumulado.toFixed(2)}€</b></p>
+      </div>
+      <table>
+        <tr><th>Fecha</th><th>Tipo</th><th>Concepto</th><th>Categoría</th><th>Importe</th></tr>
+        ${filas || '<tr><td colspan="5">Sin movimientos este mes.</td></tr>'}
+      </table>
+    </body></html>`;
+
+  const ventana = window.open('', '_blank');
+  ventana.document.write(html);
+  ventana.document.close();
+  ventana.onload = () => ventana.print();
 }
 
 // --- INICIO ---
